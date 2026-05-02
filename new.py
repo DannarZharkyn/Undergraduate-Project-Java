@@ -5,6 +5,7 @@ import time
 
 st.set_page_config(layout="wide")
 st.title("Hospital Patient Flow Simulation")
+st.markdown("<h2>Dannar Zharkyn</h2>", unsafe_allow_html=True)
 
 st.sidebar.header("Simulation Settings")
 
