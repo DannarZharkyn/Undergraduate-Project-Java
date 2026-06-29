@@ -1,29 +1,26 @@
 # Somni Systems Website
 
-A calm, responsive landing page for Somni Systems with a private Google Sheets waitlist integration.
+A calm, responsive landing page for Somni Systems with a private Google Sheets waitlist integration powered by Google Apps Script.
 
 ## Local development
 
 The waitlist uses a Vercel serverless API route, so run the site with Vercel rather than opening `index.html` directly:
 
 ```bash
-npm install
 cp .env.example .env.local
-npm run preview
+npx vercel dev
 ```
 
 Real `.env` files, spreadsheets, and CSV exports are ignored by Git. Never place customer data in this repository.
 
-## Google Sheets setup
+## Google Sheets and Apps Script setup
 
 1. Create a Google Sheet and name one tab `Waitlist`.
 2. Add the headings `Submitted at`, `First name`, and `Email` to cells A1–C1.
-3. In Google Cloud, create or select a project and enable the Google Sheets API.
-4. Create a service account and generate a JSON key.
-5. Share the Google Sheet with the service account's `client_email` as an **Editor**.
-6. Copy `.env.example` to `.env.local` and add the service account email, private key, spreadsheet ID, and tab name.
-
-The spreadsheet ID is the value between `/d/` and `/edit` in the Google Sheet URL. Preserve the `\n` characters in the private key environment variable.
+3. Open **Extensions → Apps Script** and add the waitlist `doPost` handler.
+4. Add a private `WAITLIST_SECRET` under **Project Settings → Script Properties**.
+5. Deploy the script as a web app that executes as the owner and is accessible to anyone.
+6. Copy `.env.example` to `.env.local`, set the `/exec` deployment URL, and use the same secret value.
 
 ## Deployment
 
@@ -32,13 +29,11 @@ GitHub Pages can host the static design, but it cannot run `/api/waitlist`. Depl
 In the Vercel project settings, add these environment variables:
 
 ```text
-GOOGLE_SHEETS_CLIENT_EMAIL
-GOOGLE_SHEETS_PRIVATE_KEY
-GOOGLE_SHEETS_SPREADSHEET_ID
-GOOGLE_SHEETS_TAB_NAME
+APPS_SCRIPT_URL
+APPS_SCRIPT_SECRET
 ```
 
-Redeploy after saving the variables. The API appends timestamp, first name, and email to columns A–C of the configured tab.
+Redeploy after saving the variables. The Vercel API validates each submission and forwards it securely to Apps Script, which appends timestamp, first name, and email to the `Waitlist` tab.
 
 ## Main files
 

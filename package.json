@@ -2,14 +2,5 @@
   "name": "somni-systems-landing-page",
   "version": "1.0.0",
   "private": true,
-  "description": "Somni Systems landing page and secure Google Sheets waitlist API.",
-  "scripts": {
-    "preview": "vercel dev"
-  },
-  "dependencies": {
-    "googleapis": "^173.0.0"
-  },
-  "devDependencies": {
-    "vercel": "^54.18.2"
-  }
+  "description": "Somni Systems landing page and secure Google Sheets waitlist API."
 }

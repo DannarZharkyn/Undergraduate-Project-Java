@@ -1,6 +1,5 @@
-const { google } = require('googleapis');
-
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const APPS_SCRIPT_HOST = 'script.google.com';
 
 module.exports = async function handler(request, response) {
   if (request.method !== 'POST') {
@@ -20,37 +19,31 @@ module.exports = async function handler(request, response) {
     return response.status(400).json({ error: 'Please enter a valid email address.' });
   }
 
-  const requiredVariables = [
-    'GOOGLE_SHEETS_CLIENT_EMAIL',
-    'GOOGLE_SHEETS_PRIVATE_KEY',
-    'GOOGLE_SHEETS_SPREADSHEET_ID',
-  ];
+  const scriptUrl = process.env.APPS_SCRIPT_URL;
+  const scriptSecret = process.env.APPS_SCRIPT_SECRET;
 
-  if (requiredVariables.some((variable) => !process.env[variable])) {
+  if (!scriptUrl || !scriptSecret) {
     return response.status(500).json({ error: 'The waitlist is not configured yet.' });
   }
 
   try {
-    const auth = new google.auth.GoogleAuth({
-      credentials: {
-        client_email: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
-        private_key: process.env.GOOGLE_SHEETS_PRIVATE_KEY.replace(/\\n/g, '\n'),
-      },
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    const destination = new URL(scriptUrl);
+    if (destination.protocol !== 'https:' || destination.hostname !== APPS_SCRIPT_HOST || !destination.pathname.endsWith('/exec')) {
+      throw new Error('Invalid Apps Script URL');
+    }
+
+    const scriptResponse = await fetch(destination, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ firstName, email, secret: scriptSecret }),
+      redirect: 'follow',
+      signal: AbortSignal.timeout(10000),
     });
 
-    const sheets = google.sheets({ version: 'v4', auth });
-    const tabName = process.env.GOOGLE_SHEETS_TAB_NAME || 'Waitlist';
+    if (!scriptResponse.ok) throw new Error(`Apps Script returned ${scriptResponse.status}`);
 
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID,
-      range: `'${tabName.replace(/'/g, "''")}'!A:C`,
-      valueInputOption: 'RAW',
-      insertDataOption: 'INSERT_ROWS',
-      requestBody: {
-        values: [[new Date().toISOString(), firstName, email]],
-      },
-    });
+    const result = JSON.parse(await scriptResponse.text());
+    if (!result.success) throw new Error(result.error || 'Apps Script rejected the submission');
 
     return response.status(200).json({ success: true });
   } catch (error) {
